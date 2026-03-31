@@ -1,8 +1,0 @@
-{
-  "name": "langchain-documents-mcp-server-tools",
-  "private": true,
-  "description": "Repo-local tooling for the LangChain Documents MCP Server example",
-  "devDependencies": {
-    "@modelcontextprotocol/inspector": "0.21.1"
-  }
-}

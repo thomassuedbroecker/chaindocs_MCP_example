@@ -18,10 +18,4 @@ if [[ ! -f ".env" ]]; then
   echo "Created .env from .env.example. Update values if you want to index a different folder."
 fi
 
-if command -v npm >/dev/null 2>&1; then
-  npm install --no-fund --no-audit
-else
-  echo "npm not found. Skipping MCP Inspector install."
-fi
-
 echo "Setup complete."

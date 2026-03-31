@@ -1,6 +1,6 @@
 # LangChain Documents MCP Server
 
-Example MCP server that loads local `.md` and `.txt` files with LangChain, splits them into chunks, and exposes search and retrieval tools over MCP. The default local setup uses Streamable HTTP at `http://127.0.0.1:9015/mcp`.
+Example MCP server that loads local `.md` and `.txt` files with LangChain, splits them into chunks, and exposes search and retrieval tools over MCP. The default local setup uses the `streamable-http` transport at `http://127.0.0.1:9015/mcp`.
 
 ## Architecture Overview
 
@@ -56,7 +56,7 @@ High-level resources used to implement this example:
 
 - Python 3.11+
 - A client that can connect to the configured MCP transport; the default setup uses Streamable HTTP
-- Node.js and npm if you want to run the MCP Inspector from this repository
+- Node.js and npm if you want to run MCP Inspector manually on that machine
 
 ## Quick Start
 
@@ -66,14 +66,14 @@ cd /path/to/chaindocs_MCP_example_langchain_docs
 ./scripts/run_local.sh
 ```
 
-The first command creates `.venv`, installs Python dependencies, installs the repo-local MCP Inspector when `npm` is available, and creates `.env` from `.env.example` if needed.
+The first command creates `.venv`, installs Python dependencies, and creates `.env` from `.env.example` if needed.
 The helper scripts call `.venv/bin/python` directly and export `PYTHONPATH=$ROOT_DIR/src` so local runs always execute the source tree from this repository.
 
 ## Configuration
 
 Edit `.env` if you want to change the transport, endpoint, document directory, or chunking behavior:
 
-- `MCP_TRANSPORT`: defaults to `streamable-http`
+- `MCP_TRANSPORT`: defaults to `streamable-http`; the aliases `http_streamable`, `streamable_http`, and `http-streamable` are normalized to the same value
 - `MCP_HOST`: bind host for the HTTP server
 - `MCP_PORT`: bind port for the HTTP server
 - `MCP_STREAMABLE_HTTP_PATH`: Streamable HTTP endpoint path
@@ -120,9 +120,9 @@ export DANGEROUSLY_OMIT_AUTH=true
 npx @modelcontextprotocol/inspector
 ```
 
-Then configure the MCP Inspector UI manually:
+Then configure the MCP Inspector UI manually. Inspector is treated as an external tool here; this repo does not install or pin it for you:
 
-1. Choose the HTTP transport.
+1. Choose the `streamable-http` / Streamable HTTP transport in the Inspector UI.
 2. Set the server URL to `http://127.0.0.1:9015/mcp`.
 3. Connect to the server.
 
@@ -151,8 +151,6 @@ If your MCP client accepts an HTTP MCP endpoint, point it at the default URL:
 http://127.0.0.1:9015/mcp
 ```
 
-If you prefer to set `MCP_TRANSPORT=http_streamable`, the config normalizes that alias to the SDK's `streamable-http` transport name.
-
 ## Test Commands
 
 ```bash
@@ -174,7 +172,7 @@ Current verified state as of `2026-03-31`:
 | --- | --- | --- | --- |
 | 🟢 | `./scripts/test.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning` |
 | 🟢 | `./scripts/test_coverage.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning`, `99%` total line coverage for `src/langchain_documents_mcp_server` |
-| 🟢 | `export DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector --help` | Passed on `2026-03-31` | Plain Inspector startup command resolves cleanly from the repo after setup |
+| 🟢 | `export DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector --help` | Passed on `2026-03-31` | Plain Inspector startup command works as an external manual tool and is not tied to project setup |
 | 🟢 | Open-source dependency audit | Passed on `2026-03-31` | `71` installed distributions verified as open source, including Apache-2.0 licensed `coverage` |
 | 🟡 | Known runtime warning | Present on `2026-03-31` | `langchain_core` emits a Pydantic V1 compatibility warning on Python `3.14`; tests still pass |
 | 🟢 | Current failing checks | None on `2026-03-31` | No blocking test or license failures in the current change set |
@@ -247,6 +245,8 @@ The audit uses installed package metadata and fails if a dependency cannot be ve
 - Empty search results:
   - Confirm `DOCUMENTS_PATH` contains `.md` or `.txt` files.
 - MCP Inspector cannot connect:
-  - Confirm the UI is configured for HTTP and the server URL is `http://127.0.0.1:9015/mcp`.
+  - Confirm the UI is configured for `streamable-http` and the server URL is `http://127.0.0.1:9015/mcp`.
+- `npx` is missing:
+  - Install Node.js and npm on the machine where you want to run MCP Inspector.
 - Config validation errors:
   - Verify the directory in `DOCUMENTS_PATH` exists.
