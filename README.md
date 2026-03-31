@@ -133,6 +133,10 @@ Verified local Inspector toolchain on `2026-03-31`:
 
 If Inspector does not connect on another machine, compare the output of `node -v` and `npm -v` with the versions above before debugging the MCP server itself.
 
+```sh
+brew install node@25
+```
+
 Manual smoke-test sequence inside MCP Inspector:
 
 1. Call `server_info` and confirm `result.transport` is `streamable-http`.
