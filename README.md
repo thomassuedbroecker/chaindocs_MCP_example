@@ -143,6 +143,7 @@ or
 
 ```sh
 nvm install 22.15.0
+nvm use 22.15.0
 ```
 
 Manual smoke-test sequence inside MCP Inspector:
