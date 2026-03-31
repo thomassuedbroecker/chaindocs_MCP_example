@@ -115,10 +115,7 @@ Terminal 1 starts the server:
 
 Terminal 2 starts MCP Inspector with the plain command:
 
-
-```sh
-npm uninstall g -y @modelcontextprotocol/inspector
-npm install g -y @modelcontextprotocol/inspector
+```
 export DANGEROUSLY_OMIT_AUTH=true
 npx @modelcontextprotocol/inspector@0.21.1
 ```
@@ -143,6 +140,13 @@ or
 
 ```sh
 nvm install 22 && nvm use 22
+```
+
+then
+
+```sh
+npm uninstall g -y @modelcontextprotocol/inspector
+npm install g -y @modelcontextprotocol/inspector
 ```
 
 Manual smoke-test sequence inside MCP Inspector:
