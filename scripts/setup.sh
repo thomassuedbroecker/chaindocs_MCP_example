@@ -8,9 +8,10 @@ if [[ ! -d ".venv" ]]; then
   python3 -m venv .venv
 fi
 
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e ".[dev]"
+VENV_PYTHON="$ROOT_DIR/.venv/bin/python"
+
+"$VENV_PYTHON" -m pip install --upgrade pip
+"$VENV_PYTHON" -m pip install -e ".[dev]"
 
 if [[ ! -f ".env" ]]; then
   cp .env.example .env

@@ -1,6 +1,6 @@
 Architecture notes:
 
-- FastMCP exposes the tools over stdio.
+- FastMCP exposes the tools over Streamable HTTP by default, with stdio and SSE available through configuration.
 - LangChain text loaders read local files.
 - RecursiveCharacterTextSplitter creates searchable chunks.
-- The example uses lightweight keyword ranking instead of embeddings.
+- The example keeps its index in memory and uses lightweight keyword ranking instead of embeddings.

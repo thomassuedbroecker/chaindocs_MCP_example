@@ -4,28 +4,69 @@ Example MCP server that loads local `.md` and `.txt` files with LangChain, split
 
 ## Architecture Overview
 
-`MCP Client -> FastMCP Server -> DocumentStore -> LangChain loaders/splitters -> Local documents`
+```mermaid
+flowchart LR
+    A[MCP Client] -->|stdio / SSE / Streamable HTTP| B[FastMCP Server]
+    C[.env and environment variables] --> D[Settings]
+    D --> B
+    B --> E[Registered MCP tools]
+    E --> F[DocumentStore]
+    F --> G[LangChain TextLoader]
+    G --> H[Local .md and .txt files]
+    F --> I[RecursiveCharacterTextSplitter]
+    I --> J[In-memory chunk index]
+    J --> E
+    E --> K[Search, read, and chunk responses]
+```
 
-Module responsibilities:
-- `config.py`: typed settings loaded from `.env`.
-- `document_store.py`: document loading, chunking, indexing, and search.
-- `server.py`: FastMCP server creation and tool registration.
-- `scripts/*`: setup, run, and test wrappers.
+This example follows a simple request and indexing pipeline:
+
+- Startup begins in `scripts/run_local.sh`, which validates configuration and launches `python -m langchain_documents_mcp_server.main`.
+- `main.py` delegates to `server.py`, where `create_server()` loads typed settings from `.env`, configures logging, creates the `DocumentStore`, and registers the MCP tools.
+- `DocumentStore.reload()` scans `DOCUMENTS_PATH`, loads `.md` and `.txt` files with LangChain `TextLoader`, splits them with `RecursiveCharacterTextSplitter`, and builds an in-memory index of document metadata and chunks.
+- `search_documents()` performs lightweight keyword scoring against indexed chunks and returns excerpts, while `read_document()` and `get_document_chunk()` return the original file or a single indexed chunk.
+- Errors from config, missing documents, or missing chunks are normalized into consistent MCP tool payloads so clients receive structured responses instead of raw tracebacks.
+
+Main implementation modules:
+
+- `config.py`: typed settings, transport normalization, and validation.
+- `document_store.py`: file discovery, LangChain loading, chunking, in-memory indexing, and search ranking.
+- `server.py`: FastMCP server creation, tool registration, and response/error wrapping.
+- `errors.py`: domain-specific error types returned by the tools.
+- `logging_config.py`: shared logging setup.
+- `scripts/*`: setup, runtime, testing, and license-audit helpers.
+
+## All Resources
+
+High-level resources used to implement this example:
+
+| Resource | Where it appears | Purpose |
+| --- | --- | --- |
+| MCP SDK / `FastMCP` | `src/langchain_documents_mcp_server/server.py` | Exposes the server as an MCP endpoint and registers the tools. |
+| Pydantic + `pydantic-settings` | `src/langchain_documents_mcp_server/config.py`, `.env` | Loads and validates typed runtime configuration. |
+| LangChain `TextLoader` | `src/langchain_documents_mcp_server/document_store.py` | Reads local Markdown and text files into LangChain documents. |
+| LangChain `RecursiveCharacterTextSplitter` | `src/langchain_documents_mcp_server/document_store.py` | Splits documents into chunks for search and retrieval. |
+| In-memory document index | `src/langchain_documents_mcp_server/document_store.py` | Stores chunk metadata and document lookup state without a database. |
+| Local source corpus | `sample_documents/` or `DOCUMENTS_PATH` | Provides the documents indexed by the server. |
+| Runtime scripts | `scripts/setup.sh`, `scripts/run_local.sh` | Set up the virtual environment and start the example locally. |
+| Verification scripts | `scripts/test.sh`, `scripts/test_coverage.sh`, `scripts/check_licenses.py` | Run tests, generate coverage reports, and verify the open-source dependency policy. |
+| Tests | `tests/test_*.py` | Covers config validation, document indexing, search behavior, server wiring, and the module entrypoint. |
 
 ## Prerequisites
 
 - Python 3.11+
-- A client that can connect to Streamable HTTP MCP servers
+- A client that can connect to the configured MCP transport; the default setup uses Streamable HTTP
 
 ## Quick Start
 
 ```bash
-cd /Users/thomassuedbroecker/Documents/dev/gpt_codex/langchain-documents-mcp-server
+cd /path/to/chaindocs_MCP_example_langchain_docs
 ./scripts/setup.sh
 ./scripts/run_local.sh
 ```
 
 The first command creates `.venv`, installs dependencies, and creates `.env` from `.env.example` if needed.
+The helper scripts call `.venv/bin/python` directly and export `PYTHONPATH=$ROOT_DIR/src` so local runs always execute the source tree from this repository.
 
 ## Configuration
 
@@ -56,8 +97,7 @@ This starts the MCP server over Streamable HTTP.
 You can also run the entrypoint directly:
 
 ```bash
-source .venv/bin/activate
-python -m langchain_documents_mcp_server.main
+PYTHONPATH=src .venv/bin/python -m langchain_documents_mcp_server.main
 ```
 
 ## Available MCP Tools
@@ -83,28 +123,76 @@ If you prefer to set `MCP_TRANSPORT=http_streamable`, the config normalizes that
 
 ```bash
 ./scripts/test.sh
+./scripts/test_coverage.sh
+```
+
+## Tested
+
+Current verified state as of `2026-03-31`:
+
+| State | Meaning |
+| --- | --- |
+| 🟢 | Executed and passed |
+| 🟡 | Executed and passed with a known non-blocking warning or follow-up note |
+| 🔴 | Failed or currently blocking |
+
+| State | Check | Result | Details |
+| --- | --- | --- | --- |
+| 🟢 | `./scripts/test.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning` |
+| 🟢 | `./scripts/test_coverage.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning`, `99%` total line coverage for `src/langchain_documents_mcp_server` |
+| 🟢 | Open-source dependency audit | Passed on `2026-03-31` | `71` installed distributions verified as open source, including Apache-2.0 licensed `coverage` |
+| 🟡 | Known runtime warning | Present on `2026-03-31` | `langchain_core` emits a Pydantic V1 compatibility warning on Python `3.14`; tests still pass |
+| 🟢 | Current failing checks | None on `2026-03-31` | No blocking test or license failures in the current change set |
+
+What is covered by the automated tests:
+
+- `config.py`: transport alias normalization, extension normalization, masked settings, cache helper behavior, and validation failures for invalid chunk overlap, invalid HTTP path, missing document directory, and non-directory paths.
+- `document_store.py`: indexing and reload flow, file discovery, LangChain document loading, LangChain splitting, ranked search, excerpt generation, document reads, chunk reads, and path traversal protection.
+- `server.py`: FastMCP server creation, tool registration, `server_info()` payloads, successful tool wrapping, domain error wrapping, internal error wrapping, and transport handoff in `run()`.
+- `main.py`: module entrypoint execution through `python -m langchain_documents_mcp_server.main`.
+
+Run local coverage:
+
+```bash
+./scripts/test_coverage.sh
 ```
 
 ## Open-Source Dependencies
 
 This example is intended for a public GitHub repository and is limited to open-source libraries.
 
-Direct runtime dependencies currently used by the example:
+The project declares minimum version ranges in `pyproject.toml`. The table below shows the currently verified installed versions in the local `.venv` as of `2026-03-31`.
 
-- `mcp` - MIT
-- `pydantic` - MIT
-- `pydantic-settings` - MIT
-- `langchain-core` - MIT
-- `langchain-community` - MIT
-- `langchain-text-splitters` - MIT
+Current verified Python version:
+
+- `Python 3.14.2`
+
+Current verified main runtime libraries:
+
+| Library | Installed version | License |
+| --- | --- | --- |
+| `mcp` | `1.26.0` | MIT |
+| `pydantic` | `2.12.5` | MIT |
+| `pydantic-settings` | `2.13.1` | MIT |
+| `langchain-core` | `1.2.23` | MIT |
+| `langchain-community` | `0.4.1` | MIT |
+| `langchain-text-splitters` | `1.1.1` | MIT |
+
+Current verified dev and verification libraries:
+
+| Library | Installed version | License |
+| --- | --- | --- |
+| `pytest` | `9.0.2` | MIT |
+| `ruff` | `0.15.8` | MIT |
+| `mypy` | `1.19.1` | MIT |
+| `coverage` | `7.13.5` | Apache-2.0 |
 
 The repository itself is licensed under MIT in `LICENSE`.
 
 To re-audit the environment locally:
 
 ```bash
-source .venv/bin/activate
-python scripts/check_licenses.py --scope all-installed
+.venv/bin/python scripts/check_licenses.py --scope all-installed
 ```
 
 The audit uses installed package metadata and fails if a dependency cannot be verified as open source.

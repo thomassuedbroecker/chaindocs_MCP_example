@@ -9,6 +9,7 @@ if [[ ! -d ".venv" ]]; then
   exit 1
 fi
 
-source .venv/bin/activate
-python -c "from langchain_documents_mcp_server.config import get_settings; s = get_settings(); msg = f'Config validation passed. Transport: {s.mcp_transport}'; print(f'{msg}. Endpoint: {s.streamable_http_url}' if s.mcp_transport == 'streamable-http' else msg)"
-python -m langchain_documents_mcp_server.main
+VENV_PYTHON="$ROOT_DIR/.venv/bin/python"
+export PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+"$VENV_PYTHON" -c "from langchain_documents_mcp_server.config import get_settings; s = get_settings(); msg = f'Config validation passed. Transport: {s.mcp_transport}'; print(f'{msg}. Endpoint: {s.streamable_http_url}' if s.mcp_transport == 'streamable-http' else msg)"
+"$VENV_PYTHON" -m langchain_documents_mcp_server.main

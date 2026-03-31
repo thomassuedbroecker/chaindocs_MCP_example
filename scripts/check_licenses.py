@@ -46,9 +46,13 @@ def parse_requirement_name(requirement: str) -> str:
     return canonicalize_name(match.group(1))
 
 
-def load_project_dependency_names(scope: str) -> list[str]:
+def load_project_metadata() -> dict:
     data = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
-    project = data["project"]
+    return data["project"]
+
+
+def load_project_dependency_names(scope: str) -> list[str]:
+    project = load_project_metadata()
     names = [parse_requirement_name(item) for item in project.get("dependencies", [])]
     if scope == "runtime+dev":
         for item in project.get("optional-dependencies", {}).get("dev", []):
@@ -67,6 +71,27 @@ def split_license_tokens(raw_value: str) -> list[str]:
     return tokens
 
 
+def load_local_project_license_fallback(dist: metadata.Distribution) -> tuple[list[str], list[str]]:
+    project = load_project_metadata()
+    project_name = canonicalize_name(str(project.get("name", "")))
+    dist_name = canonicalize_name(dist.metadata.get("Name", ""))
+    if not project_name or project_name != dist_name:
+        return [], []
+
+    license_value = project.get("license")
+    signals: list[str] = []
+    if isinstance(license_value, str):
+        signals.extend(split_license_tokens(license_value))
+    elif isinstance(license_value, dict):
+        for key in ("expression", "text"):
+            raw_value = license_value.get(key)
+            if raw_value:
+                signals.extend(split_license_tokens(str(raw_value)))
+
+    classifiers = [item for item in project.get("classifiers", []) if isinstance(item, str)]
+    return signals, classifiers
+
+
 def extract_license_signals(dist: metadata.Distribution) -> tuple[list[str], list[str]]:
     md = dist.metadata
     classifiers = md.get_all("Classifier") or []
@@ -74,6 +99,10 @@ def extract_license_signals(dist: metadata.Distribution) -> tuple[list[str], lis
     for key in ("License-Expression", "License"):
         for raw_value in md.get_all(key) or []:
             signals.extend(split_license_tokens(raw_value))
+    if not signals and not classifiers:
+        fallback_signals, fallback_classifiers = load_local_project_license_fallback(dist)
+        signals.extend(fallback_signals)
+        classifiers.extend(fallback_classifiers)
     return signals, classifiers
 
 
