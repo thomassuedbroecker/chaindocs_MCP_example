@@ -137,13 +137,12 @@ Verified local Inspector toolchain on `2026-03-31`:
 If Inspector does not connect on another machine, compare the output of `node -v` and `npm -v` with the versions above before debugging the MCP server itself.
 
 ```sh
-brew install node@25
+brew install node@22
 ```
 or 
 
 ```sh
-nvm install 22.15.0
-nvm use 22.15.0
+nvm install 22 && nvm use 22
 ```
 
 Manual smoke-test sequence inside MCP Inspector:
