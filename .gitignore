@@ -213,3 +213,4 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .env
+chaindocs_MCP_example_langchain_docs.code-workspace
