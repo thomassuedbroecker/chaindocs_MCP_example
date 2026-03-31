@@ -139,6 +139,11 @@ If Inspector does not connect on another machine, compare the output of `node -v
 ```sh
 brew install node@25
 ```
+or 
+
+```sh
+nvm install 22.15.0
+```
 
 Manual smoke-test sequence inside MCP Inspector:
 
