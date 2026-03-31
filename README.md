@@ -115,9 +115,12 @@ Terminal 1 starts the server:
 
 Terminal 2 starts MCP Inspector with the plain command:
 
+
 ```sh
+npm uninstall g -y @modelcontextprotocol/inspector
+npm install g -y @modelcontextprotocol/inspector
 export DANGEROUSLY_OMIT_AUTH=true
-npx @modelcontextprotocol/inspector
+npx @modelcontextprotocol/inspector@0.21.1
 ```
 
 Then configure the MCP Inspector UI manually. Inspector is treated as an external tool here; this repo does not install or pin it for you:
