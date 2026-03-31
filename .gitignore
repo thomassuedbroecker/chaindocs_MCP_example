@@ -214,3 +214,4 @@ __pycache__/
 .mypy_cache/
 .env
 chaindocs_MCP_example_langchain_docs.code-workspace
+node_modules/

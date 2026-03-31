@@ -1,12 +1,12 @@
 # LangChain Documents MCP Server
 
-Example MCP server that loads local `.md` and `.txt` files with LangChain, splits them into chunks, and exposes simple search tools over Streamable HTTP.
+Example MCP server that loads local `.md` and `.txt` files with LangChain, splits them into chunks, and exposes search and retrieval tools over MCP. The default local setup uses Streamable HTTP at `http://127.0.0.1:9015/mcp`.
 
 ## Architecture Overview
 
 ```mermaid
 flowchart LR
-    A[MCP Client] -->|stdio / SSE / Streamable HTTP| B[FastMCP Server]
+    A[MCP Client] -->|Configured MCP transport| B[FastMCP Server]
     C[.env and environment variables] --> D[Settings]
     D --> B
     B --> E[Registered MCP tools]
@@ -25,7 +25,7 @@ This example follows a simple request and indexing pipeline:
 - `main.py` delegates to `server.py`, where `create_server()` loads typed settings from `.env`, configures logging, creates the `DocumentStore`, and registers the MCP tools.
 - `DocumentStore.reload()` scans `DOCUMENTS_PATH`, loads `.md` and `.txt` files with LangChain `TextLoader`, splits them with `RecursiveCharacterTextSplitter`, and builds an in-memory index of document metadata and chunks.
 - `search_documents()` performs lightweight keyword scoring against indexed chunks and returns excerpts, while `read_document()` and `get_document_chunk()` return the original file or a single indexed chunk.
-- Errors from config, missing documents, or missing chunks are normalized into consistent MCP tool payloads so clients receive structured responses instead of raw tracebacks.
+- Tool responses are wrapped in a consistent `{ "ok": true, "result": ... }` or `{ "ok": false, "error": ... }` payload so clients receive structured success and failure responses instead of raw tracebacks.
 
 Main implementation modules:
 
@@ -56,6 +56,7 @@ High-level resources used to implement this example:
 
 - Python 3.11+
 - A client that can connect to the configured MCP transport; the default setup uses Streamable HTTP
+- Node.js and npm if you want to run the MCP Inspector from this repository
 
 ## Quick Start
 
@@ -65,7 +66,7 @@ cd /path/to/chaindocs_MCP_example_langchain_docs
 ./scripts/run_local.sh
 ```
 
-The first command creates `.venv`, installs dependencies, and creates `.env` from `.env.example` if needed.
+The first command creates `.venv`, installs Python dependencies, installs the repo-local MCP Inspector when `npm` is available, and creates `.env` from `.env.example` if needed.
 The helper scripts call `.venv/bin/python` directly and export `PYTHONPATH=$ROOT_DIR/src` so local runs always execute the source tree from this repository.
 
 ## Configuration
@@ -84,7 +85,7 @@ Edit `.env` if you want to change the transport, endpoint, document directory, o
 - `CHUNK_OVERLAP`: overlap between chunks
 - `MAX_RESULTS`: default search limit
 
-Default values point at `sample_documents/`, and the server listens on `http://127.0.0.1:8000/mcp` after setup.
+Default values point at `sample_documents/`, and the server listens on `http://127.0.0.1:9015/mcp` after setup.
 
 ## Run The Server
 
@@ -92,7 +93,7 @@ Default values point at `sample_documents/`, and the server listens on `http://1
 ./scripts/run_local.sh
 ```
 
-This starts the MCP server over Streamable HTTP.
+This starts the MCP server using the transport configured in `.env`. With the default template, it listens on `http://127.0.0.1:9015/mcp`.
 
 You can also run the entrypoint directly:
 
@@ -100,10 +101,38 @@ You can also run the entrypoint directly:
 PYTHONPATH=src .venv/bin/python -m langchain_documents_mcp_server.main
 ```
 
+## Manual Testing With MCP Inspector
+
+This repo's manual Inspector flow assumes the default `MCP_TRANSPORT=streamable-http`.
+
+Use two terminals.
+
+Terminal 1 starts the server:
+
 ```sh
-export DANGEROUSLY_OMIT_AUTH=true   
+./scripts/run_local.sh
+```
+
+Terminal 2 starts MCP Inspector with the plain command:
+
+```sh
+export DANGEROUSLY_OMIT_AUTH=true
 npx @modelcontextprotocol/inspector
-``` 
+```
+
+Then configure the MCP Inspector UI manually:
+
+1. Choose the HTTP transport.
+2. Set the server URL to `http://127.0.0.1:9015/mcp`.
+3. Connect to the server.
+
+Manual smoke-test sequence inside MCP Inspector:
+
+1. Call `server_info` and confirm `result.transport` is `streamable-http`.
+2. Call `list_documents` and confirm the sample set contains `architecture.txt` and `getting-started.md`.
+3. Call `search_documents` with `{"query":"streamable http","limit":3}` and confirm at least one chunk from `architecture.txt` is returned.
+4. Call `read_document` with `{"source":"getting-started.md"}` and confirm the full document content is returned.
+5. Copy a `chunk_id` from the search result and call `get_document_chunk` with `{"chunk_id":"<copied-chunk-id>"}`.
 
 ## Available MCP Tools
 
@@ -119,12 +148,10 @@ npx @modelcontextprotocol/inspector
 If your MCP client accepts an HTTP MCP endpoint, point it at the default URL:
 
 ```bash
-http://127.0.0.1:8000/mcp
+http://127.0.0.1:9015/mcp
 ```
 
-```
 If you prefer to set `MCP_TRANSPORT=http_streamable`, the config normalizes that alias to the SDK's `streamable-http` transport name.
-```
 
 ## Test Commands
 
@@ -147,6 +174,7 @@ Current verified state as of `2026-03-31`:
 | --- | --- | --- | --- |
 | 🟢 | `./scripts/test.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning` |
 | 🟢 | `./scripts/test_coverage.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning`, `99%` total line coverage for `src/langchain_documents_mcp_server` |
+| 🟢 | `export DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector --help` | Passed on `2026-03-31` | Plain Inspector startup command resolves cleanly from the repo after setup |
 | 🟢 | Open-source dependency audit | Passed on `2026-03-31` | `71` installed distributions verified as open source, including Apache-2.0 licensed `coverage` |
 | 🟡 | Known runtime warning | Present on `2026-03-31` | `langchain_core` emits a Pydantic V1 compatibility warning on Python `3.14`; tests still pass |
 | 🟢 | Current failing checks | None on `2026-03-31` | No blocking test or license failures in the current change set |
@@ -207,9 +235,9 @@ The audit uses installed package metadata and fails if a dependency cannot be ve
 ## Sample Workflow
 
 1. Start the server with `./scripts/run_local.sh`.
-2. Connect an MCP client.
-3. Call `list_documents()`.
-4. Call `search_documents(query="setup")`.
+2. Start MCP Inspector with `export DANGEROUSLY_OMIT_AUTH=true` and `npx @modelcontextprotocol/inspector`.
+3. Call `server_info()`.
+4. Call `search_documents(query="streamable http")`.
 5. Call `read_document(source="getting-started.md")`.
 
 ## Troubleshooting
@@ -218,5 +246,7 @@ The audit uses installed package metadata and fails if a dependency cannot be ve
   - Run `./scripts/setup.sh` and confirm `.venv` exists.
 - Empty search results:
   - Confirm `DOCUMENTS_PATH` contains `.md` or `.txt` files.
+- MCP Inspector cannot connect:
+  - Confirm the UI is configured for HTTP and the server URL is `http://127.0.0.1:9015/mcp`.
 - Config validation errors:
   - Verify the directory in `DOCUMENTS_PATH` exists.

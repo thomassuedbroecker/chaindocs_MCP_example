@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     mcp_transport: Literal["stdio", "sse", "streamable-http"] = "streamable-http"
     mcp_host: str = "127.0.0.1"
-    mcp_port: int = Field(default=8000, ge=1, le=65535)
+    mcp_port: int = Field(default=9015, ge=1, le=65535)
     mcp_streamable_http_path: str = "/mcp"
     mcp_stateless_http: bool = True
     mcp_json_response: bool = True

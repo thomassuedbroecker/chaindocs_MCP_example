@@ -97,7 +97,7 @@ def test_settings_normalize_http_streamable_alias(tmp_path: Path) -> None:
     )
 
     assert settings.mcp_transport == "streamable-http"
-    assert settings.streamable_http_url == "http://127.0.0.1:8000/mcp"
+    assert settings.streamable_http_url == "http://127.0.0.1:9015/mcp"
 
 
 def test_run_uses_configured_transport(monkeypatch, tmp_path: Path) -> None:
