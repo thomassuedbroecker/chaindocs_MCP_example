@@ -100,6 +100,11 @@ You can also run the entrypoint directly:
 PYTHONPATH=src .venv/bin/python -m langchain_documents_mcp_server.main
 ```
 
+```sh
+export DANGEROUSLY_OMIT_AUTH=true   
+npx @modelcontextprotocol/inspector
+``` 
+
 ## Available MCP Tools
 
 - `server_info()`
@@ -117,7 +122,9 @@ If your MCP client accepts an HTTP MCP endpoint, point it at the default URL:
 http://127.0.0.1:8000/mcp
 ```
 
+```
 If you prefer to set `MCP_TRANSPORT=http_streamable`, the config normalizes that alias to the SDK's `streamable-http` transport name.
+```
 
 ## Test Commands
 
