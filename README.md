@@ -126,6 +126,13 @@ Then configure the MCP Inspector UI manually. Inspector is treated as an externa
 2. Set the server URL to `http://127.0.0.1:9015/mcp`.
 3. Connect to the server.
 
+Verified local Inspector toolchain on `2026-03-31`:
+
+- `node`: `v25.6.1`
+- `npm`: `11.9.0`
+
+If Inspector does not connect on another machine, compare the output of `node -v` and `npm -v` with the versions above before debugging the MCP server itself.
+
 Manual smoke-test sequence inside MCP Inspector:
 
 1. Call `server_info` and confirm `result.transport` is `streamable-http`.
@@ -173,6 +180,7 @@ Current verified state as of `2026-03-31`:
 | 🟢 | `./scripts/test.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning` |
 | 🟢 | `./scripts/test_coverage.sh` | Passed on `2026-03-31` | `16 passed`, `1 warning`, `99%` total line coverage for `src/langchain_documents_mcp_server` |
 | 🟢 | `export DANGEROUSLY_OMIT_AUTH=true && npx @modelcontextprotocol/inspector --help` | Passed on `2026-03-31` | Plain Inspector startup command works as an external manual tool and is not tied to project setup |
+| 🟢 | Inspector toolchain versions | Verified on `2026-03-31` | `node v25.6.1`, `npm 11.9.0` in the environment where the manual Inspector flow was checked |
 | 🟢 | Open-source dependency audit | Passed on `2026-03-31` | `71` installed distributions verified as open source, including Apache-2.0 licensed `coverage` |
 | 🟡 | Known runtime warning | Present on `2026-03-31` | `langchain_core` emits a Pydantic V1 compatibility warning on Python `3.14`; tests still pass |
 | 🟢 | Current failing checks | None on `2026-03-31` | No blocking test or license failures in the current change set |
@@ -246,6 +254,8 @@ The audit uses installed package metadata and fails if a dependency cannot be ve
   - Confirm `DOCUMENTS_PATH` contains `.md` or `.txt` files.
 - MCP Inspector cannot connect:
   - Confirm the UI is configured for `streamable-http` and the server URL is `http://127.0.0.1:9015/mcp`.
+- MCP Inspector behaves differently on another machine:
+  - Compare `node -v` and `npm -v` with the verified versions in the manual Inspector section.
 - `npx` is missing:
   - Install Node.js and npm on the machine where you want to run MCP Inspector.
 - Config validation errors:
